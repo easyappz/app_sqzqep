@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, Spin } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 import ErrorBoundary from './ErrorBoundary';
 import Home from './pages/Home';
@@ -10,9 +10,28 @@ import Profile from './pages/Profile';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
+  const [isChecking, setIsChecking] = useState(true);
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem('token');
+      setHasToken(!!token);
+      setIsChecking(false);
+    };
+
+    checkToken();
+  }, []);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
   
-  if (!token) {
+  if (!hasToken) {
     return <Navigate to="/login" replace />;
   }
   

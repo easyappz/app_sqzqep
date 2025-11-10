@@ -18,7 +18,10 @@ const Login = () => {
       if (response.tokens && response.tokens.access) {
         localStorage.setItem('token', response.tokens.access);
         message.success('Вход выполнен успешно!');
-        navigate('/profile');
+        
+        setTimeout(() => {
+          navigate('/profile', { replace: true });
+        }, 100);
       }
     } catch (error) {
       if (error.response && error.response.status === 400) {
