@@ -17,9 +17,13 @@ def get_tokens_for_member(member):
     refresh['member_id'] = member.id
     refresh['email'] = member.email
     
+    access = refresh.access_token
+    access['member_id'] = member.id
+    access['email'] = member.email
+    
     return {
         'refresh': str(refresh),
-        'access': str(refresh.access_token),
+        'access': str(access),
     }
 
 
@@ -55,24 +59,22 @@ def login_view(request):
 @permission_classes([IsAuthenticated])
 def profile_view(request):
     try:
-        member_id = request.auth.payload.get('member_id')
-        member = Member.objects.get(id=member_id)
+        member = request.user
         serializer = MemberProfileSerializer(member)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    except Member.DoesNotExist:
-        return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile_view(request):
     try:
-        member_id = request.auth.payload.get('member_id')
-        member = Member.objects.get(id=member_id)
+        member = request.user
         serializer = MemberUpdateSerializer(member, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(MemberProfileSerializer(member).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Member.DoesNotExist:
-        return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
