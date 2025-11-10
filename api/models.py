@@ -22,3 +22,11 @@ class Member(models.Model):
             if not self.password.startswith('pbkdf2_sha256$'):
                 self.password = make_password(self.password)
         super().save(*args, **kwargs)
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
