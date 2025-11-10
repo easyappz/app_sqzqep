@@ -1,220 +1,200 @@
 openapi: 3.0.3
 info:
   title: Easyapp API
-  version: 1.0.0
   description: API documentation for easyapp
+  version: 1.0.0
 paths:
   /api/register/:
     post:
-      operationId: api_register_create
-      description: Register a new member
+      summary: Register a new member
       tags:
-      - api
+        - Authentication
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MemberRegistration'
+              type: object
+              required:
+                - email
+                - first_name
+                - last_name
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                password:
+                  type: string
+                  format: password
       responses:
         '201':
+          description: Member successfully registered
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MemberRegistrationResponse'
-          description: 'Member successfully registered'
+                type: object
+                properties:
+                  member:
+                    $ref: '#/components/schemas/MemberProfile'
+                  tokens:
+                    $ref: '#/components/schemas/TokenPair'
         '400':
-          description: 'Validation error'
+          description: Validation error
+
   /api/login/:
     post:
-      operationId: api_login_create
-      description: Login with email and password
+      summary: Login member
       tags:
-      - api
+        - Authentication
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MemberLogin'
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
       responses:
         '200':
+          description: Login successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MemberLoginResponse'
-          description: 'Successfully logged in'
+                type: object
+                properties:
+                  member:
+                    $ref: '#/components/schemas/MemberProfile'
+                  tokens:
+                    $ref: '#/components/schemas/TokenPair'
         '400':
-          description: 'Invalid credentials'
+          description: Invalid credentials
+
   /api/profile/:
     get:
-      operationId: api_profile_retrieve
-      description: Get current member profile
+      summary: Get member profile
       tags:
-      - api
+        - Profile
       security:
-      - jwtAuth: []
+        - BearerAuth: []
       responses:
         '200':
+          description: Profile data
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MemberProfile'
-          description: 'Profile retrieved successfully'
         '401':
-          description: 'Authentication required'
+          description: Unauthorized
         '404':
-          description: 'Member not found'
+          description: Member not found
+
+  /api/profile/update/:
     put:
-      operationId: api_profile_update
-      description: Update current member profile
+      summary: Update member profile
       tags:
-      - api
+        - Profile
       security:
-      - jwtAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MemberUpdate'
+              type: object
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                password:
+                  type: string
+                  format: password
       responses:
         '200':
+          description: Profile updated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MemberProfile'
-          description: 'Profile updated successfully'
         '400':
-          description: 'Validation error'
+          description: Validation error
         '401':
-          description: 'Authentication required'
+          description: Unauthorized
         '404':
-          description: 'Member not found'
+          description: Member not found
     patch:
-      operationId: api_profile_partial_update
-      description: Partially update current member profile
+      summary: Partially update member profile
       tags:
-      - api
+        - Profile
       security:
-      - jwtAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MemberUpdate'
+              type: object
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                password:
+                  type: string
+                  format: password
       responses:
         '200':
+          description: Profile updated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MemberProfile'
-          description: 'Profile updated successfully'
         '400':
-          description: 'Validation error'
+          description: Validation error
         '401':
-          description: 'Authentication required'
+          description: Unauthorized
         '404':
-          description: 'Member not found'
+          description: Member not found
+
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
-    MemberRegistration:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        password:
-          type: string
-          writeOnly: true
-      required:
-      - email
-      - first_name
-      - last_name
-      - password
-    MemberLogin:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          writeOnly: true
-      required:
-      - email
-      - password
     MemberProfile:
       type: object
       properties:
         id:
           type: integer
-          readOnly: true
         email:
           type: string
           format: email
-          readOnly: true
         first_name:
           type: string
-          maxLength: 150
         last_name:
           type: string
-          maxLength: 150
         created_at:
           type: string
           format: date-time
-          readOnly: true
-      required:
-      - id
-      - email
-      - first_name
-      - last_name
-      - created_at
-    MemberUpdate:
+    TokenPair:
       type: object
       properties:
-        first_name:
+        access:
           type: string
-          maxLength: 150
-        last_name:
+        refresh:
           type: string
-          maxLength: 150
-        password:
-          type: string
-          writeOnly: true
-    MemberRegistrationResponse:
-      type: object
-      properties:
-        member:
-          $ref: '#/components/schemas/MemberProfile'
-        tokens:
-          type: object
-          properties:
-            access:
-              type: string
-            refresh:
-              type: string
-    MemberLoginResponse:
-      type: object
-      properties:
-        member:
-          $ref: '#/components/schemas/MemberProfile'
-        tokens:
-          type: object
-          properties:
-            access:
-              type: string
-            refresh:
-              type: string
-  securitySchemes:
-    jwtAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
