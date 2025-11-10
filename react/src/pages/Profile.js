@@ -15,6 +15,12 @@ function Profile() {
   const [profileData, setProfileData] = useState(null);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      message.warning('Пожалуйста, войдите в систему');
+      navigate('/login', { replace: true });
+      return;
+    }
     fetchProfile();
   }, []);
 
@@ -29,9 +35,35 @@ function Profile() {
         last_name: data.last_name,
       });
     } catch (error) {
-      message.error('Не удалось загрузить профиль');
-      if (error.response && error.response.status === 401) {
-        handleLogout();
+      console.error('Profile fetch error:', error);
+      
+      if (error.response) {
+        const status = error.response.status;
+        const errorData = error.response.data;
+        
+        if (status === 401 || status === 403) {
+          const isTokenError = errorData?.code === 'token_not_valid' || 
+                              errorData?.detail?.includes('token') || 
+                              errorData?.detail?.includes('Token');
+          
+          if (isTokenError) {
+            message.error('Сессия истекла. Пожалуйста, войдите снова');
+            handleLogout();
+          } else {
+            message.error('Ошибка авторизации');
+          }
+        } else if (status === 404) {
+          message.error('Профиль не найден');
+          handleLogout();
+        } else if (status >= 500) {
+          message.error('Ошибка сервера. Попробуйте позже');
+        } else {
+          message.error('Не удалось загрузить профиль');
+        }
+      } else if (error.request) {
+        message.error('Ошибка сети. Проверьте подключение к интернету');
+      } else {
+        message.error('Произошла ошибка при загрузке профиля');
       }
     } finally {
       setLoading(false);
@@ -58,7 +90,31 @@ function Profile() {
         password: '',
       });
     } catch (error) {
-      message.error('Не удалось обновить профиль');
+      console.error('Profile update error:', error);
+      
+      if (error.response) {
+        const status = error.response.status;
+        const errorData = error.response.data;
+        
+        if (status === 401 || status === 403) {
+          const isTokenError = errorData?.code === 'token_not_valid' || 
+                              errorData?.detail?.includes('token') || 
+                              errorData?.detail?.includes('Token');
+          
+          if (isTokenError) {
+            message.error('Сессия истекла. Пожалуйста, войдите снова');
+            handleLogout();
+          } else {
+            message.error('Ошибка авторизации');
+          }
+        } else if (status === 400) {
+          message.error('Некорректные данные. Проверьте введенные значения');
+        } else {
+          message.error('Не удалось обновить профиль');
+        }
+      } else {
+        message.error('Ошибка сети. Попробуйте позже');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -67,8 +123,7 @@ function Profile() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refresh');
-    message.success('Вы успешно вышли из системы');
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const handleCancel = () => {
