@@ -4,43 +4,217 @@ info:
   version: 1.0.0
   description: API documentation for easyapp
 paths:
-  /api/hello/:
-    get:
-      operationId: api_hello_retrieve
-      description: Get a hello world message
+  /api/register/:
+    post:
+      operationId: api_register_create
+      description: Register a new member
       tags:
       - api
-      security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberRegistration'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberRegistrationResponse'
+          description: 'Member successfully registered'
+        '400':
+          description: 'Validation error'
+  /api/login/:
+    post:
+      operationId: api_login_create
+      description: Login with email and password
+      tags:
+      - api
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberLogin'
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Message'
-          description: ''
+                $ref: '#/components/schemas/MemberLoginResponse'
+          description: 'Successfully logged in'
+        '400':
+          description: 'Invalid credentials'
+  /api/profile/:
+    get:
+      operationId: api_profile_retrieve
+      description: Get current member profile
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfile'
+          description: 'Profile retrieved successfully'
+        '401':
+          description: 'Authentication required'
+        '404':
+          description: 'Member not found'
+    put:
+      operationId: api_profile_update
+      description: Update current member profile
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfile'
+          description: 'Profile updated successfully'
+        '400':
+          description: 'Validation error'
+        '401':
+          description: 'Authentication required'
+        '404':
+          description: 'Member not found'
+    patch:
+      operationId: api_profile_partial_update
+      description: Partially update current member profile
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfile'
+          description: 'Profile updated successfully'
+        '400':
+          description: 'Validation error'
+        '401':
+          description: 'Authentication required'
+        '404':
+          description: 'Member not found'
 components:
   schemas:
-    Message:
+    MemberRegistration:
       type: object
       properties:
-        message:
+        email:
           type: string
-          maxLength: 200
-        timestamp:
+          format: email
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+    MemberLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    MemberProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        created_at:
           type: string
           format: date-time
           readOnly: true
       required:
-      - message
-      - timestamp
+      - id
+      - email
+      - first_name
+      - last_name
+      - created_at
+    MemberUpdate:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+    MemberRegistrationResponse:
+      type: object
+      properties:
+        member:
+          $ref: '#/components/schemas/MemberProfile'
+        tokens:
+          type: object
+          properties:
+            access:
+              type: string
+            refresh:
+              type: string
+    MemberLoginResponse:
+      type: object
+      properties:
+        member:
+          $ref: '#/components/schemas/MemberProfile'
+        tokens:
+          type: object
+          properties:
+            access:
+              type: string
+            refresh:
+              type: string
   securitySchemes:
-    basicAuth:
+    jwtAuth:
       type: http
-      scheme: basic
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid
+      scheme: bearer
+      bearerFormat: JWT
