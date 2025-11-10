@@ -1,31 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Spin } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, LogoutOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMemberProfile, updateMemberProfile } from '../api/auth';
+import { Card, Form, Input, Button, Typography, Space, message, Spin } from 'antd';
+import { UserOutlined, LockOutlined, LogoutOutlined, EditOutlined } from '@ant-design/icons';
+import { getProfile, updateProfile } from '../api/profile';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
-const Profile = () => {
-  const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [profileData, setProfileData] = useState(null);
-  const navigate = useNavigate();
+function Profile() {
   const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [profileData, setProfileData] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
     fetchProfile();
   }, []);
 
   const fetchProfile = async () => {
-    setDataLoading(true);
     try {
-      const data = await getMemberProfile();
+      setLoading(true);
+      const data = await getProfile();
       setProfileData(data);
       form.setFieldsValue({
         email: data.email,
@@ -33,183 +29,190 @@ const Profile = () => {
         last_name: data.last_name,
       });
     } catch (error) {
+      message.error('Не удалось загрузить профиль');
       if (error.response && error.response.status === 401) {
-        message.error('Необходима авторизация');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        message.error('Ошибка при загрузке профиля');
-      }
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  const onFinish = async (values) => {
-    setLoading(true);
-    try {
-      const updateData = {
-        first_name: values.first_name,
-        last_name: values.last_name,
-      };
-      
-      if (values.password && values.password.trim() !== '') {
-        updateData.password = values.password;
-      }
-
-      const data = await updateMemberProfile(updateData);
-      setProfileData(data);
-      message.success('Профиль успешно обновлен!');
-      form.setFieldValue('password', '');
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        message.error('Необходима авторизация');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else if (error.response && error.response.data) {
-        const errorData = error.response.data;
-        if (typeof errorData === 'object') {
-          Object.keys(errorData).forEach(key => {
-            const errorMessages = Array.isArray(errorData[key]) 
-              ? errorData[key].join(', ') 
-              : errorData[key];
-            message.error(`${key}: ${errorMessages}`);
-          });
-        } else {
-          message.error('Ошибка при обновлении профиля');
-        }
-      } else {
-        message.error('Ошибка при обновлении профиля');
+        handleLogout();
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSubmit = async (values) => {
+    try {
+      setSubmitting(true);
+      const updateData = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+      };
+      
+      if (values.password) {
+        updateData.password = values.password;
+      }
+
+      const data = await updateProfile(updateData);
+      setProfileData(data);
+      message.success('Профиль успешно обновлен');
+      setEditMode(false);
+      form.setFieldsValue({
+        password: '',
+      });
+    } catch (error) {
+      message.error('Не удалось обновить профиль');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
-    message.success('Вы вышли из аккаунта');
+    localStorage.removeItem('refresh');
+    message.success('Вы успешно вышли из системы');
     navigate('/login');
   };
 
-  if (dataLoading) {
+  const handleCancel = () => {
+    setEditMode(false);
+    form.setFieldsValue({
+      first_name: profileData.first_name,
+      last_name: profileData.last_name,
+      password: '',
+    });
+  };
+
+  if (loading) {
     return (
-      <div 
-        data-easytag="id1-react/src/pages/Profile.js"
-        className="min-h-screen flex items-center justify-center bg-gray-100"
-      >
-        <Spin size="large" data-easytag="id2-react/src/pages/Profile.js" />
+      <div data-easytag="id1-react/src/pages/Profile.js" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Spin size="large" />
       </div>
     );
   }
 
   return (
-    <div 
-      data-easytag="id3-react/src/pages/Profile.js"
-      className="min-h-screen flex items-center justify-center bg-gray-100 p-4"
-    >
-      <Card className="w-full max-w-md shadow-lg">
-        <div className="flex justify-between items-center mb-6">
-          <Title level={2} className="m-0" data-easytag="id4-react/src/pages/Profile.js">
-            Профиль
-          </Title>
-          <Button 
-            icon={<LogoutOutlined />} 
-            onClick={handleLogout}
-            data-easytag="id5-react/src/pages/Profile.js"
-          >
-            Выйти
-          </Button>
-        </div>
-        <Form
-          form={form}
-          name="profile"
-          onFinish={onFinish}
-          layout="vertical"
-          size="large"
-          data-easytag="id6-react/src/pages/Profile.js"
+    <div data-easytag="id2-react/src/pages/Profile.js" className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <Card
+          data-easytag="id3-react/src/pages/Profile.js"
+          className="shadow-lg rounded-lg"
+          title={
+            <div className="flex items-center justify-between">
+              <Title level={3} className="mb-0">
+                Профиль
+              </Title>
+              <Button
+                type="primary"
+                danger
+                icon={<LogoutOutlined />}
+                onClick={handleLogout}
+              >
+                Выйти
+              </Button>
+            </div>
+          }
         >
-          <Form.Item
-            name="email"
-            label="Электронная почта"
-            data-easytag="id7-react/src/pages/Profile.js"
+          <Form
+            data-easytag="id4-react/src/pages/Profile.js"
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            size="large"
           >
-            <Input 
-              prefix={<MailOutlined />} 
-              disabled
-              data-easytag="id8-react/src/pages/Profile.js"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="first_name"
-            label="Имя"
-            rules={[
-              {
-                required: true,
-                message: 'Пожалуйста, введите имя!',
-              },
-            ]}
-            data-easytag="id9-react/src/pages/Profile.js"
-          >
-            <Input 
-              prefix={<UserOutlined />} 
-              placeholder="Имя"
-              data-easytag="id10-react/src/pages/Profile.js"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="last_name"
-            label="Фамилия"
-            rules={[
-              {
-                required: true,
-                message: 'Пожалуйста, введите фамилию!',
-              },
-            ]}
-            data-easytag="id11-react/src/pages/Profile.js"
-          >
-            <Input 
-              prefix={<UserOutlined />} 
-              placeholder="Фамилия"
-              data-easytag="id12-react/src/pages/Profile.js"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            label="Новый пароль"
-            rules={[
-              {
-                min: 6,
-                message: 'Пароль должен быть не менее 6 символов!',
-              },
-            ]}
-            data-easytag="id13-react/src/pages/Profile.js"
-          >
-            <Input.Password 
-              prefix={<LockOutlined />} 
-              placeholder="Оставьте пустым, если не хотите менять"
-              data-easytag="id14-react/src/pages/Profile.js"
-            />
-          </Form.Item>
-
-          <Form.Item data-easytag="id15-react/src/pages/Profile.js">
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={loading} 
-              block
-              data-easytag="id16-react/src/pages/Profile.js"
+            <Form.Item
+              data-easytag="id5-react/src/pages/Profile.js"
+              label="Email"
+              name="email"
             >
-              Сохранить изменения
-            </Button>
-          </Form.Item>
-        </Form>
-      </Card>
+              <Input
+                data-easytag="id6-react/src/pages/Profile.js"
+                prefix={<UserOutlined />}
+                disabled
+                className="bg-gray-50"
+              />
+            </Form.Item>
+
+            <Form.Item
+              data-easytag="id7-react/src/pages/Profile.js"
+              label="Имя"
+              name="first_name"
+              rules={[
+                { required: true, message: 'Пожалуйста, введите имя' },
+              ]}
+            >
+              <Input
+                data-easytag="id8-react/src/pages/Profile.js"
+                prefix={<UserOutlined />}
+                disabled={!editMode}
+                placeholder="Введите имя"
+              />
+            </Form.Item>
+
+            <Form.Item
+              data-easytag="id9-react/src/pages/Profile.js"
+              label="Фамилия"
+              name="last_name"
+              rules={[
+                { required: true, message: 'Пожалуйста, введите фамилию' },
+              ]}
+            >
+              <Input
+                data-easytag="id10-react/src/pages/Profile.js"
+                prefix={<UserOutlined />}
+                disabled={!editMode}
+                placeholder="Введите фамилию"
+              />
+            </Form.Item>
+
+            {editMode && (
+              <Form.Item
+                data-easytag="id11-react/src/pages/Profile.js"
+                label="Новый пароль (необязательно)"
+                name="password"
+              >
+                <Input.Password
+                  data-easytag="id12-react/src/pages/Profile.js"
+                  prefix={<LockOutlined />}
+                  placeholder="Введите новый пароль"
+                />
+              </Form.Item>
+            )}
+
+            <Form.Item data-easytag="id13-react/src/pages/Profile.js">
+              {!editMode ? (
+                <Button
+                  data-easytag="id14-react/src/pages/Profile.js"
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={() => setEditMode(true)}
+                  block
+                >
+                  Редактировать профиль
+                </Button>
+              ) : (
+                <Space className="w-full" direction="horizontal" size="middle">
+                  <Button
+                    data-easytag="id15-react/src/pages/Profile.js"
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    className="flex-1"
+                  >
+                    Сохранить
+                  </Button>
+                  <Button
+                    data-easytag="id16-react/src/pages/Profile.js"
+                    onClick={handleCancel}
+                    className="flex-1"
+                  >
+                    Отмена
+                  </Button>
+                </Space>
+              )}
+            </Form.Item>
+          </Form>
+        </Card>
+      </div>
     </div>
   );
-};
+}
 
 export default Profile;
